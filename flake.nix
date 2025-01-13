@@ -5,22 +5,25 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
     tomers = {
-      url = "github:thinnerthinker/tomers";
+      url = "github:boralg/tomers";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = { nixpkgs, tomers, ... }:
-    tomers.inputs.flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    { nixpkgs, tomers, ... }:
+    tomers.inputs.flake-utils.lib.eachDefaultSystem (
+      system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
         targetPlatforms =
           let
             buildFilePatterns = [ ".*/assets/.*" ];
-            toolchainPackages = fenixPkgs: crossFenixPkgs: with fenixPkgs; [
-              latest.rustfmt
-              stable.rust-src
-            ];
+            toolchainPackages =
+              fenixPkgs: crossFenixPkgs: with fenixPkgs; [
+                latest.rustfmt
+                stable.rust-src
+              ];
           in
           [
             {
@@ -39,18 +42,20 @@
               inherit buildFilePatterns;
               inherit toolchainPackages;
               env = {
-                LD_LIBRARY_PATH = with pkgs; lib.makeLibraryPath [
-                  libxkbcommon
-                  wayland
-                  xorg.libX11
-                  xorg.libXrandr
-                  xorg.libXrender
-                  xorg.libXcursor
-                  xorg.libxcb
-                  xorg.libXi
-                  libGL
-                  vulkan-loader
-                ];
+                LD_LIBRARY_PATH =
+                  with pkgs;
+                  lib.makeLibraryPath [
+                    libxkbcommon
+                    wayland
+                    xorg.libX11
+                    xorg.libXrandr
+                    xorg.libXrender
+                    xorg.libXcursor
+                    xorg.libxcb
+                    xorg.libXi
+                    libGL
+                    vulkan-loader
+                  ];
               };
             }
             {
@@ -98,4 +103,4 @@
         devShells = devShellsForEachPlatform ./.;
       }
     );
-} 
+}

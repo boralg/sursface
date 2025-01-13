@@ -127,13 +127,13 @@
       "locked": {
         "lastModified": 1722641557,
         "narHash": "sha256-Ii6XjxZsWWGzWUHgl4sAniHQIBxLrRR0gsz21fv5QV0=",
-        "owner": "thinnerthinker",
+        "owner": "boralg",
         "repo": "tomers",
         "rev": "24d13a623903790d87ad5cedfac3bddef2da7091",
         "type": "github"
       },
       "original": {
-        "owner": "thinnerthinker",
+        "owner": "boralg",
         "repo": "tomers",
         "type": "github"
       }

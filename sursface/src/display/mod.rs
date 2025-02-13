@@ -41,7 +41,7 @@ impl<'a> Display<'a> {
     }
 
     pub fn from_window(window: Window) -> Self {
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             #[cfg(not(target_arch = "wasm32"))]
             backends: wgpu::Backends::PRIMARY,
             #[cfg(target_arch = "wasm32")]
@@ -74,6 +74,7 @@ impl<'a> Display<'a> {
                         } else {
                             wgpu::Limits::default()
                         },
+                        memory_hints: wgpu::MemoryHints::Performance,
                     },
                     None,
                 )

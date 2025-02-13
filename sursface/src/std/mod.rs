@@ -64,13 +64,13 @@ pub fn create_render_pipeline<'a>(
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,
-                entry_point: "vs_main",
+                entry_point: Some("vs_main"),
                 buffers,
                 compilation_options: Default::default(),
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
-                entry_point: "fs_main",
+                entry_point: Some("fs_main"),
                 targets: &[Some(display.config.format.into())],
                 compilation_options: Default::default(),
             }),
@@ -86,6 +86,7 @@ pub fn create_render_pipeline<'a>(
             depth_stencil: None,
             multisample: wgpu::MultisampleState::default(),
             multiview: None,
+            cache: None,
         })
 }
 
@@ -117,14 +118,14 @@ pub fn create_texture_layout_entry_from_image(
     });
 
     queue.write_texture(
-        wgpu::ImageCopyTexture {
+        wgpu::TexelCopyTextureInfo {
             texture: &texture,
             mip_level: 0,
             origin: wgpu::Origin3d::ZERO,
             aspect: wgpu::TextureAspect::All,
         },
         &rgba,
-        wgpu::ImageDataLayout {
+        wgpu::TexelCopyBufferLayout {
             offset: 0,
             bytes_per_row: Some(4 * dimensions.0),
             rows_per_image: Some(dimensions.1),

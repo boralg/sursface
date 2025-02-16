@@ -191,8 +191,6 @@ impl AppState for MandelbrotState {
 
         self.interaction_state = match self.interaction_state.clone() {
             state @ InteractionState::PanningIdle { pressed_down_at } => {
-                log::info!("{} {}", now_secs(), pressed_down_at);
-
                 if now_secs() - pressed_down_at > 1f32 {
                     log::info!("Started zooming in at {}", now_secs());
                     InteractionState::ZoomingIn
@@ -328,8 +326,6 @@ impl AppState for MandelbrotState {
                     } else {
                         self.interaction_state.clone()
                     };
-
-                log::info!("{}", self.interaction_state.clone());
             }
             _ => {}
         }

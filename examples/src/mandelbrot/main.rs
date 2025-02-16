@@ -257,6 +257,10 @@ impl AppState for MandelbrotState {
                     y: position.y as f32,
                 };
 
+                if self.cursor_location == self.last_cursor_location {
+                    return;
+                }
+
                 self.interaction_state = match self.interaction_state.clone() {
                     InteractionState::PanningIdle { pressed_down_at: _ }
                     | InteractionState::ZoomingIn

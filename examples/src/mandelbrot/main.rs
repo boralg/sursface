@@ -282,50 +282,49 @@ impl AppState for MandelbrotState {
                 button: MouseButton::Left,
                 ..
             } => {
-                self.interaction_state =
-                    if elem_state == ElementState::Pressed {
-                        self.last_cursor_location = self.cursor_location;
+                self.interaction_state = if elem_state == ElementState::Pressed {
+                    self.last_cursor_location = self.cursor_location;
 
-                        match self.interaction_state.clone() {
-                            InteractionState::Idle {
-                                pre_tapped_at: Some(pre_tapped_at),
-                            } => {
-                                if now_secs() - pre_tapped_at < 0.7f32 {
-                                    log::info!("Started zooming out at {}", now_secs());
-                                    InteractionState::ZoomingOut
-                                } else {
-                                    InteractionState::PanningIdle {
-                                        pressed_down_at: now_secs(),
-                                    }
+                    match self.interaction_state.clone() {
+                        InteractionState::Idle {
+                            pre_tapped_at: Some(pre_tapped_at),
+                        } => {
+                            if now_secs() - pre_tapped_at < 1f32 {
+                                log::info!("Started zooming out at {}", now_secs());
+                                InteractionState::ZoomingOut
+                            } else {
+                                InteractionState::PanningIdle {
+                                    pressed_down_at: now_secs(),
                                 }
                             }
-                            InteractionState::Idle { .. } => InteractionState::PanningIdle {
-                                pressed_down_at: now_secs(),
-                            },
-                            state => state,
                         }
-                    } else if elem_state == ElementState::Released {
-                        match self.interaction_state.clone() {
-                            InteractionState::PanningIdle { pressed_down_at } => {
-                                let elapsed = now_secs() - pressed_down_at;
-                                let pre_tapped_at = if elapsed < 0.3f32 {
-                                    Some(pressed_down_at)
-                                } else {
-                                    None
-                                };
+                        InteractionState::Idle { .. } => InteractionState::PanningIdle {
+                            pressed_down_at: now_secs(),
+                        },
+                        state => state,
+                    }
+                } else if elem_state == ElementState::Released {
+                    match self.interaction_state.clone() {
+                        InteractionState::PanningIdle { pressed_down_at } => {
+                            let elapsed = now_secs() - pressed_down_at;
+                            let pre_tapped_at = if elapsed < 0.3f32 {
+                                Some(pressed_down_at)
+                            } else {
+                                None
+                            };
 
-                                InteractionState::Idle { pre_tapped_at }
-                            }
-                            InteractionState::ZoomingIn
-                            | InteractionState::ZoomingOut
-                            | InteractionState::Panning => InteractionState::Idle {
-                                pre_tapped_at: None,
-                            },
-                            state => state,
+                            InteractionState::Idle { pre_tapped_at }
                         }
-                    } else {
-                        self.interaction_state.clone()
-                    };
+                        InteractionState::ZoomingIn
+                        | InteractionState::ZoomingOut
+                        | InteractionState::Panning => InteractionState::Idle {
+                            pre_tapped_at: None,
+                        },
+                        state => state,
+                    }
+                } else {
+                    self.interaction_state.clone()
+                };
             }
             _ => {}
         }

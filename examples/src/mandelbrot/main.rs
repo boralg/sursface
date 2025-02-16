@@ -281,11 +281,11 @@ impl AppState for MandelbrotState {
             }
             WindowEvent::MouseInput {
                 state: elem_state,
-                button,
+                button: MouseButton::Left,
                 ..
             } => {
                 self.interaction_state =
-                    if elem_state == ElementState::Pressed && button == MouseButton::Left {
+                    if elem_state == ElementState::Pressed {
                         self.last_cursor_location = self.cursor_location;
 
                         match self.interaction_state.clone() {
@@ -306,7 +306,7 @@ impl AppState for MandelbrotState {
                             },
                             state => state,
                         }
-                    } else if elem_state == ElementState::Released && button == MouseButton::Left {
+                    } else if elem_state == ElementState::Released {
                         match self.interaction_state.clone() {
                             InteractionState::PanningIdle { pressed_down_at } => {
                                 let elapsed = now_secs() - pressed_down_at;

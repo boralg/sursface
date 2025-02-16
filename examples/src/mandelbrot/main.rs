@@ -33,44 +33,29 @@ pub fn start_browser(canvas: sursface::wgpu::web_sys::HtmlCanvasElement) {
 
 #[derive(Clone)]
 enum InteractionState {
-    Idle {
-        last_pressed_down_at: f32,
-        pre_tap: bool,
-    },
-    PanningIdle {
-        pressed_down_at: f32,
-        pre_tap: bool,
-    },
+    /// Not pressing or holding down.
+    Idle { pre_tapped_at: Option<f32> },
+    /// Holding down but not dragging yet.
+    PanningIdle { pressed_down_at: f32 },
+    /// Holding down and dragging.
     Panning,
-    Zooming,
+    /// Holding down without dragging for a bit then possibly dragging.
+    ZoomingIn,
+    /// Holding down without dragging for a bit (with pre-tap) then possibly dragging.
     ZoomingOut,
 }
 
 impl FmtDisplay for InteractionState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            InteractionState::Idle {
-                last_pressed_down_at,
-                pre_tap,
-            } => {
-                write!(
-                    f,
-                    "Idle {{ last_pressed_down_at: {}, pre_tap: {} }}",
-                    last_pressed_down_at, pre_tap
-                )
+            InteractionState::Idle { pre_tapped_at } => {
+                write!(f, "Idle {{ pre_tapped_at: {:?} }}", pre_tapped_at)
             }
-            InteractionState::PanningIdle {
-                pressed_down_at,
-                pre_tap,
-            } => {
-                write!(
-                    f,
-                    "PanningIdle {{ pressed_down_at: {}, pre_tap: {} }}",
-                    pressed_down_at, pre_tap
-                )
+            InteractionState::PanningIdle { pressed_down_at } => {
+                write!(f, "PanningIdle {{ pressed_down_at: {} }}", pressed_down_at)
             }
             InteractionState::Panning => write!(f, "Panning"),
-            InteractionState::Zooming => write!(f, "Zooming"),
+            InteractionState::ZoomingIn => write!(f, "Zooming"),
             InteractionState::ZoomingOut => write!(f, "ZoomingOut"),
         }
     }
@@ -176,8 +161,7 @@ impl AppState for MandelbrotState {
             cursor_location: PhysicalPosition::new(0.0, 0.0),
             last_timestep: now_secs(),
             interaction_state: InteractionState::Idle {
-                last_pressed_down_at: 0.0,
-                pre_tap: false,
+                pre_tapped_at: None,
             },
         }
     }
@@ -206,30 +190,24 @@ impl AppState for MandelbrotState {
         };
 
         self.interaction_state = match self.interaction_state.clone() {
-            InteractionState::PanningIdle {
-                pressed_down_at,
-                pre_tap,
-            } => {
+            state @ InteractionState::PanningIdle { pressed_down_at } => {
                 log::info!("{} {}", now_secs(), pressed_down_at);
+
                 if now_secs() - pressed_down_at > 1f32 {
-                    log::info!("zooming {}", now_secs());
-                    InteractionState::Zooming
+                    log::info!("Started zooming in at {}", now_secs());
+                    InteractionState::ZoomingIn
                 } else {
-                    InteractionState::PanningIdle {
-                        pressed_down_at,
-                        pre_tap,
-                    }
+                    state
                 }
             }
             state => state,
         };
 
         match self.interaction_state {
-            InteractionState::Zooming => {
+            InteractionState::ZoomingIn => {
                 self.uniforms.scale *= self.scale_speed.powf(1f32 - dt as f32);
             }
             InteractionState::ZoomingOut => {
-                log::info!("zooming out {}", self.scale_speed.powf(1f32 - dt as f32));
                 self.uniforms.scale /= self.scale_speed.powf(1f32 - dt as f32);
             }
             _ => (),
@@ -238,9 +216,7 @@ impl AppState for MandelbrotState {
         let output = {
             let mut encoder = display
                 .device
-                .create_command_encoder(&CommandEncoderDescriptor {
-                    label: None,
-                });
+                .create_command_encoder(&CommandEncoderDescriptor { label: None });
 
             let (output, view) = get_framebuffer(&display.surface);
 
@@ -284,16 +260,15 @@ impl AppState for MandelbrotState {
                 };
 
                 self.interaction_state = match self.interaction_state.clone() {
-                    InteractionState::PanningIdle {
-                        pressed_down_at: _,
-                        pre_tap: _,
-                    }
-                    | InteractionState::Zooming
+                    InteractionState::PanningIdle { pressed_down_at: _ }
+                    | InteractionState::ZoomingIn
+                    | InteractionState::ZoomingOut
                     | InteractionState::Panning => {
                         let dx = (self.cursor_location.x - self.last_cursor_location.x)
                             / display.size.width as f32;
                         let dy = (self.cursor_location.y - self.last_cursor_location.y)
                             / display.size.height as f32;
+
                         self.uniforms.translation[0] -= dx * self.uniforms.scale;
                         self.uniforms.translation[1] += dy * self.uniforms.scale;
 
@@ -312,45 +287,41 @@ impl AppState for MandelbrotState {
                 self.interaction_state =
                     if elem_state == ElementState::Pressed && button == MouseButton::Left {
                         self.last_cursor_location = self.cursor_location;
+
                         match self.interaction_state.clone() {
                             InteractionState::Idle {
-                                last_pressed_down_at,
-                                pre_tap,
+                                pre_tapped_at: Some(pre_tapped_at),
                             } => {
-                                if pre_tap && now_secs() - last_pressed_down_at > 1.0f32 {
+                                if now_secs() - pre_tapped_at < 0.7f32 {
+                                    log::info!("Started zooming out at {}", now_secs());
                                     InteractionState::ZoomingOut
                                 } else {
                                     InteractionState::PanningIdle {
                                         pressed_down_at: now_secs(),
-                                        pre_tap: false,
                                     }
                                 }
                             }
+                            InteractionState::Idle { .. } => InteractionState::PanningIdle {
+                                pressed_down_at: now_secs(),
+                            },
                             state => state,
                         }
                     } else if elem_state == ElementState::Released && button == MouseButton::Left {
                         match self.interaction_state.clone() {
-                            InteractionState::PanningIdle {
-                                pre_tap: false,
-                                pressed_down_at,
-                            } => {
-                                if now_secs() - pressed_down_at < 0.3f32 {
-                                    InteractionState::Idle {
-                                        last_pressed_down_at: pressed_down_at,
-                                        pre_tap: true,
-                                    }
+                            InteractionState::PanningIdle { pressed_down_at } => {
+                                let elapsed = now_secs() - pressed_down_at;
+                                let pre_tapped_at = if elapsed < 0.3f32 {
+                                    Some(pressed_down_at)
                                 } else {
-                                    InteractionState::Idle {
-                                        last_pressed_down_at: pressed_down_at,
-                                        pre_tap: false,
-                                    }
-                                }
+                                    None
+                                };
+
+                                InteractionState::Idle { pre_tapped_at }
                             }
-                            InteractionState::Zooming
+                            InteractionState::ZoomingIn
                             | InteractionState::ZoomingOut
                             | InteractionState::Panning => InteractionState::Idle {
-                                last_pressed_down_at: now_secs(),
-                                pre_tap: false,
+                                pre_tapped_at: None,
                             },
                             state => state,
                         }

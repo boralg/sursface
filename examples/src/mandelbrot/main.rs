@@ -266,29 +266,19 @@ impl AppState for MandelbrotState {
                 phase: TouchPhase::Moved,
                 location,
                 ..
+            }) => self.handle_cursor_move(display, location),
+            WindowEvent::Touch(Touch {
+                phase: TouchPhase::Started,
+                location,
+                ..
             }) => {
-                // Hack to prevent view from jumping 1 frame after touch starts.
-                // Happens because - unlike cursors positions - touches cannot be constantly tracked, thus creating a discontinuity 
-                // on each new touch that is considered to be a panning movement.
-                // This trick delays panning by 1 frame after touch starts.
-                if matches!(
-                    self.interaction_state,
-                    InteractionState::PanningIdle { pressed_down_at: _ }
-                ) {
-                    self.last_cursor_location = PhysicalPosition {
+                self.cursor_location = PhysicalPosition {
                         x: location.x as f32,
                         y: location.y as f32,
                     };
 
-                    self.interaction_state = InteractionState::Panning;
-                }
-
-                self.handle_cursor_move(display, location)
+                self.interaction_state = self.handle_cursor_down();
             }
-            WindowEvent::Touch(Touch {
-                phase: TouchPhase::Started,
-                ..
-            }) => self.interaction_state = self.handle_cursor_down(),
             WindowEvent::Touch(Touch {
                 phase: TouchPhase::Ended,
                 ..

@@ -15,7 +15,7 @@ use sursface::wgpu::{
     VertexStepMode,
 };
 use sursface::winit::dpi::PhysicalPosition;
-use sursface::winit::event::{ElementState, MouseButton, WindowEvent};
+use sursface::winit::event::{ElementState, MouseButton, Touch, TouchPhase, WindowEvent};
 use sursface::{log, wgpu};
 
 fn main() {
@@ -251,86 +251,108 @@ impl AppState for MandelbrotState {
 
     fn event<'a>(&mut self, display: &mut Display, event: WindowEvent) {
         match event {
-            WindowEvent::CursorMoved { position, .. } => {
-                self.cursor_location = PhysicalPosition {
-                    x: position.x as f32,
-                    y: position.y as f32,
-                };
-
-                if self.cursor_location == self.last_cursor_location {
-                    return;
-                }
-
-                self.interaction_state = match self.interaction_state.clone() {
-                    InteractionState::PanningIdle { pressed_down_at: _ }
-                    | InteractionState::ZoomingIn
-                    | InteractionState::ZoomingOut
-                    | InteractionState::Panning => {
-                        let dx = (self.cursor_location.x - self.last_cursor_location.x)
-                            / display.size.width as f32;
-                        let dy = (self.cursor_location.y - self.last_cursor_location.y)
-                            / display.size.height as f32;
-
-                        self.uniforms.translation[0] -= dx * self.uniforms.scale;
-                        self.uniforms.translation[1] += dy * self.uniforms.scale;
-
-                        InteractionState::Panning
-                    }
-                    state => state,
-                };
-
-                self.last_cursor_location = self.cursor_location;
-            }
+            WindowEvent::CursorMoved { position, .. } => self.handle_cursor_move(display, position),
             WindowEvent::MouseInput {
-                state: elem_state,
+                state: ElementState::Pressed,
                 button: MouseButton::Left,
                 ..
-            } => {
-                self.interaction_state = if elem_state == ElementState::Pressed {
-                    self.last_cursor_location = self.cursor_location;
-
-                    match self.interaction_state.clone() {
-                        InteractionState::Idle {
-                            pre_tapped_at: Some(pre_tapped_at),
-                        } => {
-                            if now_secs() - pre_tapped_at < 1f32 {
-                                log::info!("Started zooming out at {}", now_secs());
-                                InteractionState::ZoomingOut
-                            } else {
-                                InteractionState::PanningIdle {
-                                    pressed_down_at: now_secs(),
-                                }
-                            }
-                        }
-                        InteractionState::Idle { .. } => InteractionState::PanningIdle {
-                            pressed_down_at: now_secs(),
-                        },
-                        state => state,
-                    }
-                } else if elem_state == ElementState::Released {
-                    match self.interaction_state.clone() {
-                        InteractionState::PanningIdle { pressed_down_at } => {
-                            let elapsed = now_secs() - pressed_down_at;
-                            let pre_tapped_at = if elapsed < 0.3f32 {
-                                Some(pressed_down_at)
-                            } else {
-                                None
-                            };
-
-                            InteractionState::Idle { pre_tapped_at }
-                        }
-                        InteractionState::ZoomingIn
-                        | InteractionState::ZoomingOut
-                        | InteractionState::Panning => InteractionState::Idle {
-                            pre_tapped_at: None,
-                        },
-                        state => state,
-                    }
-                } else {
-                    self.interaction_state.clone()
-                };
-            }
+            } => self.interaction_state = self.handle_cursor_down(),
+            WindowEvent::MouseInput {
+                state: ElementState::Released,
+                button: MouseButton::Left,
+                ..
+            } => self.interaction_state = self.handle_cursor_up(),
+            WindowEvent::Touch(Touch {
+                phase: TouchPhase::Moved,
+                location,
+                ..
+            }) => self.handle_cursor_move(display, location),
+            WindowEvent::Touch(Touch {
+                phase: TouchPhase::Started,
+                ..
+            }) => self.interaction_state = self.handle_cursor_down(),
+            WindowEvent::Touch(Touch {
+                phase: TouchPhase::Ended,
+                ..
+            }) => self.interaction_state = self.handle_cursor_up(),
             _ => {}
+        }
+    }
+}
+
+impl MandelbrotState {
+    fn handle_cursor_move(&mut self, display: &mut Display, position: PhysicalPosition<f64>) {
+        self.cursor_location = PhysicalPosition {
+            x: position.x as f32,
+            y: position.y as f32,
+        };
+
+        if self.cursor_location == self.last_cursor_location {
+            return;
+        }
+
+        self.interaction_state = match self.interaction_state.clone() {
+            InteractionState::PanningIdle { pressed_down_at: _ }
+            | InteractionState::ZoomingIn
+            | InteractionState::ZoomingOut
+            | InteractionState::Panning => {
+                let dx = (self.cursor_location.x - self.last_cursor_location.x)
+                    / display.size.width as f32;
+                let dy = (self.cursor_location.y - self.last_cursor_location.y)
+                    / display.size.height as f32;
+
+                self.uniforms.translation[0] -= dx * self.uniforms.scale;
+                self.uniforms.translation[1] += dy * self.uniforms.scale;
+
+                InteractionState::Panning
+            }
+            state => state,
+        };
+
+        self.last_cursor_location = self.cursor_location;
+    }
+
+    fn handle_cursor_down(&mut self) -> InteractionState {
+        self.last_cursor_location = self.cursor_location;
+
+        match self.interaction_state.clone() {
+            InteractionState::Idle {
+                pre_tapped_at: Some(pre_tapped_at),
+            } => {
+                if now_secs() - pre_tapped_at < 1f32 {
+                    log::info!("Started zooming out at {}", now_secs());
+                    InteractionState::ZoomingOut
+                } else {
+                    InteractionState::PanningIdle {
+                        pressed_down_at: now_secs(),
+                    }
+                }
+            }
+            InteractionState::Idle { .. } => InteractionState::PanningIdle {
+                pressed_down_at: now_secs(),
+            },
+            state => state,
+        }
+    }
+
+    fn handle_cursor_up(&mut self) -> InteractionState {
+        match self.interaction_state.clone() {
+            InteractionState::PanningIdle { pressed_down_at } => {
+                let elapsed = now_secs() - pressed_down_at;
+                let pre_tapped_at = if elapsed < 0.3f32 {
+                    Some(pressed_down_at)
+                } else {
+                    None
+                };
+
+                InteractionState::Idle { pre_tapped_at }
+            }
+            InteractionState::ZoomingIn
+            | InteractionState::ZoomingOut
+            | InteractionState::Panning => InteractionState::Idle {
+                pre_tapped_at: None,
+            },
+            state => state,
         }
     }
 }

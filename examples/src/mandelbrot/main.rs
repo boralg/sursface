@@ -273,9 +273,9 @@ impl AppState for MandelbrotState {
                 ..
             }) => {
                 self.cursor_location = PhysicalPosition {
-                        x: location.x as f32,
-                        y: location.y as f32,
-                    };
+                    x: location.x as f32,
+                    y: location.y as f32,
+                };
 
                 self.interaction_state = self.handle_cursor_down();
             }
@@ -299,7 +299,7 @@ impl MandelbrotState {
             return;
         }
 
-        self.interaction_state = match self.interaction_state.clone() {
+        match self.interaction_state.clone() {
             InteractionState::PanningIdle { pressed_down_at: _ }
             | InteractionState::ZoomingIn
             | InteractionState::ZoomingOut
@@ -312,9 +312,13 @@ impl MandelbrotState {
                 self.uniforms.translation[0] -= dx * self.uniforms.scale;
                 self.uniforms.translation[1] += dy * self.uniforms.scale;
 
-                InteractionState::Panning
+                const WIGGLE_TOLERANCE: f32 = 0.001f32;
+
+                if !(dx < WIGGLE_TOLERANCE && dy < WIGGLE_TOLERANCE) {
+                    self.interaction_state = InteractionState::Panning
+                }
             }
-            state => state,
+            _ => (),
         };
 
         self.last_cursor_location = self.cursor_location;

@@ -6,14 +6,14 @@ use sursface::std::{
     clear, create_render_pipeline, create_sampler_entry, create_shader, create_texture,
     create_texture_layout_entry_from_image, create_uniforms, get_framebuffer,
 };
-use sursface::time::now_secs;
 use sursface::wgpu::util::{BufferInitDescriptor, DeviceExt};
 use sursface::wgpu::{
     BindGroup, BindGroupEntry, BindingResource, Buffer, BufferAddress, BufferUsages, Color,
     CommandEncoderDescriptor, PipelineLayoutDescriptor, RenderPipeline, VertexAttribute,
     VertexBufferLayout, VertexFormat, VertexStepMode,
 };
-use sursface::winit::event::WindowEvent;
+use sursface::winit::dpi::PhysicalPosition;
+use sursface::winit::event::{Touch, WindowEvent};
 
 fn main() {
     #[cfg(not(target_arch = "wasm32"))]
@@ -30,7 +30,6 @@ pub fn start_browser(canvas: sursface::wgpu::web_sys::HtmlCanvasElement) {
 
 struct CubeState {
     render_pipeline: RenderPipeline,
-    start_time: f32,
     uniform_buffer: Buffer,
     uniform_bind_group: BindGroup,
     vertex_buffer: Buffer,
@@ -119,8 +118,6 @@ impl AppState for CubeState {
             }],
         );
 
-        let start_time = now_secs();
-
         let vertex_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: None,
             contents: bytemuck::cast_slice(&cube(&[
@@ -136,7 +133,6 @@ impl AppState for CubeState {
 
         CubeState {
             render_pipeline,
-            start_time,
             uniform_buffer,
             uniform_bind_group,
             vertex_buffer,
@@ -162,17 +158,12 @@ impl AppState for CubeState {
         let output = {
             let mut encoder = display
                 .device
-                .create_command_encoder(&CommandEncoderDescriptor {
-                    label: None,
-                });
+                .create_command_encoder(&CommandEncoderDescriptor { label: None });
 
             let (output, view) = get_framebuffer(&display.surface);
             {
                 let mut rpass = clear(&view, &mut encoder, clear_color);
 
-                let now = now_secs();
-                let elapsed = now - self.start_time;
-                sursface::log::info!("{} {}", now, elapsed);
                 let aspect_ratio = display.config.width as f32 / display.config.height as f32;
 
                 let model = Matrix4::identity();
@@ -214,31 +205,15 @@ impl AppState for CubeState {
     }
 
     fn event<'a>(&mut self, _display: &mut Display, event: WindowEvent) {
-        let mut x = 0f64;
-        let mut y = 0f64;
-
-        let moved = {
+        let movement = {
             match event {
-                WindowEvent::Touch(a) => {
-                    x = a.location.x;
-                    y = a.location.y;
-
-                    true
-                }
-                WindowEvent::CursorMoved {
-                    device_id: _,
-                    position,
-                } => {
-                    x = position.x;
-                    y = position.y;
-
-                    true
-                }
-                _ => false,
+                WindowEvent::Touch(Touch { location, .. }) => Some(location),
+                WindowEvent::CursorMoved { position, .. } => Some(position),
+                _ => None,
             }
         };
 
-        if moved {
+        if let Some(PhysicalPosition { x, y }) = movement {
             self.yaw = x;
             self.pitch = -y;
 

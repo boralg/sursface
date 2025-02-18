@@ -156,7 +156,7 @@ impl AppState for MandelbrotState {
                 aspect_ratio,
                 _padding: [0.0; 2],
             },
-            scale_speed: 1.0 - 0.001,
+            scale_speed: 0.5f32,
             last_cursor_location: PhysicalPosition::new(0.0, 0.0),
             cursor_location: PhysicalPosition::new(0.0, 0.0),
             last_timestep: now_secs(),
@@ -170,11 +170,6 @@ impl AppState for MandelbrotState {
         let dt = {
             let mut dt = 0f32;
             dt += now_secs() - self.last_timestep;
-
-            #[cfg(target_arch = "wasm32")]
-            {
-                dt *= -1000f32; // hack
-            }
 
             dt
         };
@@ -203,10 +198,10 @@ impl AppState for MandelbrotState {
 
         match self.interaction_state {
             InteractionState::ZoomingIn => {
-                self.uniforms.scale *= self.scale_speed.powf(1f32 - dt as f32);
+                self.uniforms.scale *= self.scale_speed.powf(dt);
             }
             InteractionState::ZoomingOut => {
-                self.uniforms.scale /= self.scale_speed.powf(1f32 - dt as f32);
+                self.uniforms.scale /= self.scale_speed.powf(dt);
             }
             _ => (),
         }

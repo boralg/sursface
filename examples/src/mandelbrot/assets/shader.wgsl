@@ -23,7 +23,7 @@ fn vs_main(@location(0) position: vec3<f32>, @location(1) uv: vec2<f32>) -> Vert
 
 @fragment
 fn fs_main(@location(0) fragUV: vec2<f32>) -> @location(0) vec4<f32> {
-    let max_iter: u32 = 100u;
+    let max_iter: u32 = 200u;
     
     let centered_uv = (fragUV * 2.0 - vec2<f32>(1.0, 1.0)) * vec2<f32>(uniforms.aspect_ratio, 1.0);
     let c = uniforms.translation + centered_uv * uniforms.scale;

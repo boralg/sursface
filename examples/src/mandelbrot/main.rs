@@ -1,7 +1,7 @@
 use bytemuck::{Pod, Zeroable};
+use cgmath::{Vector2, Zero};
 use std::fmt::Display as FmtDisplay;
 use sursface::app::AppState;
-use sursface::cgmath::{Vector2, Zero};
 use sursface::display::Display;
 use sursface::std::models::{quad_no_normal, quad_uvs, VertexPositionUv};
 use sursface::std::{

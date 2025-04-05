@@ -1,5 +1,5 @@
+use cgmath::{perspective, Deg, Matrix4, Point3, SquareMatrix, Vector3};
 use sursface::app::AppState;
-use sursface::cgmath::{perspective, Deg, Matrix4, Point3, SquareMatrix, Vector3};
 use sursface::display::Display;
 use sursface::std::models::{cube, quad_uvs, VertexPositionNormalUv};
 use sursface::std::{

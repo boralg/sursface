@@ -2174,7 +2174,6 @@ name = "sursface"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
- "cgmath",
  "console_error_panic_hook",
  "console_log",
  "env_logger",
@@ -2196,6 +2195,7 @@ name = "sursface_examples"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
+ "cgmath",
  "sursface",
  "wasm-bindgen",
 ]

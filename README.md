@@ -57,7 +57,7 @@ nix build .#wasm32-unknown
 
 ## Releases
 
-Releases consist of executable binaries of the examples. These are automatically built by a pipeline on every push to `main`, and can be directly downloaded, unzipped, and ran, without any installation process.
+Releases consist of executable binaries of the examples. These are automatically built for each new release, and can be directly downloaded, unzipped, and ran, without any installation process.
 
 ## Running Examples
 

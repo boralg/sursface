@@ -2,6 +2,12 @@
 name = "sursface"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "Small cross-platform rendering library"
+repository = "https://github.com/boralg/sursface"
+readme = "../README.md"
+keywords = ["graphics", "webgpu", "rendering", "wasm", "gamedev"]
+categories = ["graphics", "games", "rendering", "wasm", "web-programming"]
 
 [lib]
 crate-type = ["lib", "cdylib"]

@@ -3,10 +3,7 @@ name: Build and Release Sursface
 on:
   push:
     branches:
-      - main
-  pull_request:
-    branches:
-      - main
+      - 'release/*'
 
 jobs:
   initialize_release:
@@ -15,21 +12,22 @@ jobs:
 
     outputs:
       release_id: ${{ steps.create_release.outputs.id }}
-      tag_name: ${{ steps.generate_tag.outputs.tag }}
+      tag_name: ${{ steps.extract_version.outputs.version }}
 
     steps:
-      - name: Generate Tag Name
-        id: generate_tag
+      - name: Extract Version from Branch Name
+        id: extract_version
         run: |
-          TAG_NAME="v$(date +'%Y%m%d%H%M%S')"
-          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
-          echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          VERSION=${BRANCH_NAME#release/}
+          echo "VERSION=v${VERSION}" >> $GITHUB_ENV
+          echo "version=v${VERSION}" >> $GITHUB_OUTPUT
 
       - name: Create Empty Release
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ steps.generate_tag.outputs.tag }}
+          tag_name: ${{ steps.extract_version.outputs.version }}
           token: ${{ secrets.GITHUB_TOKEN }}
           draft: false
           prerelease: false

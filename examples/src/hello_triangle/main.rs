@@ -21,7 +21,7 @@ struct TriangleState {
 }
 
 impl AppState for TriangleState {
-    fn new(display: &mut Display) -> TriangleState {
+    fn new(display: &mut Display) -> Self {
         let device = &display.device;
 
         let shader = create_shader(device, include_str!("assets/shader.wgsl"));
@@ -33,7 +33,7 @@ impl AppState for TriangleState {
         });
 
         let render_pipeline = create_render_pipeline(display, pipeline_layout, shader, &[]);
-        TriangleState { render_pipeline }
+        Self { render_pipeline }
     }
 
     fn draw(&mut self, display: &mut Display) {
@@ -46,9 +46,8 @@ impl AppState for TriangleState {
 
         let device = &display.device;
 
-        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: None,
-        });
+        let mut encoder =
+            device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
         let (output, view) = get_framebuffer(&display.surface);
         {

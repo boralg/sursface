@@ -85,7 +85,7 @@ pub struct Uniforms {
 }
 
 impl AppState for MandelbrotState {
-    fn new(display: &mut Display) -> MandelbrotState {
+    fn new(display: &mut Display) -> Self {
         let device = &display.device;
         let aspect_ratio = display.config.width as f32 / display.config.height as f32;
 
@@ -144,7 +144,7 @@ impl AppState for MandelbrotState {
             usage: BufferUsages::VERTEX,
         });
 
-        MandelbrotState {
+        Self {
             render_pipeline,
             vertex_buffer,
             uniform_buffer,

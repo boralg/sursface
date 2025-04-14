@@ -48,7 +48,7 @@ pub struct Uniforms {
 }
 
 impl AppState for CubeState {
-    fn new(display: &mut Display) -> CubeState {
+    fn new(display: &mut Display) -> Self {
         let device = &display.device;
 
         let shader = create_shader(device, include_str!("assets/shader.wgsl"));
@@ -131,7 +131,7 @@ impl AppState for CubeState {
             usage: BufferUsages::VERTEX,
         });
 
-        CubeState {
+        Self {
             render_pipeline,
             uniform_buffer,
             uniform_bind_group,

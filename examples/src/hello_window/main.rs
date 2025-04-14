@@ -19,8 +19,8 @@ pub fn start_browser(canvas: sursface::wgpu::web_sys::HtmlCanvasElement) {
 struct EmptyState {}
 
 impl AppState for EmptyState {
-    fn new<'a>(_display: &mut Display) -> EmptyState {
-        EmptyState {}
+    fn new<'a>(_display: &mut Display) -> Self {
+        Self {}
     }
 
     fn draw<'a>(&mut self, display: &mut Display) {

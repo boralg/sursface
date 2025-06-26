@@ -25,6 +25,7 @@
                 stable.rustc
                 stable.cargo
                 crossFenixPkgs.stable.rust-src
+                crossFenixPkgs.stable.rust-std
               ];
           in
           [

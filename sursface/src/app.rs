@@ -36,36 +36,55 @@ pub trait AppState {
 }
 
 fn init_logger() {
-    #[cfg(target_arch = "wasm32")]
-    {
-        let base_level = log::LevelFilter::Info;
-        let wgpu_level = log::LevelFilter::Error;
+    use colored::Colorize;
 
-        fern::Dispatch::new()
-            .level(base_level)
-            .level_for("wgpu_core", wgpu_level)
-            .level_for("wgpu_hal", wgpu_level)
-            .level_for("naga", wgpu_level)
-            .chain(fern::Output::call(console_log::log))
-            .apply()
+    let base_level = log::LevelFilter::Info;
+    let wgpu_level = log::LevelFilter::Error;
+
+    let mut dispatch = fern::Dispatch::new()
+        .level(base_level)
+        .level_for("wgpu_core", wgpu_level)
+        .level_for("wgpu_hal", wgpu_level)
+        .level_for("naga", wgpu_level)
+        .format(|out, message, record| {
+            let now= time::OffsetDateTime::from_unix_timestamp(
+                web_time::SystemTime::now()
+                    .duration_since(web_time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs() as i64,
+            )
             .unwrap();
-        std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-    }
+
+            let level = match record.level() {
+                log::Level::Error => "ERROR".red().bold(),
+                log::Level::Warn => "WARN ".yellow().bold(),
+                log::Level::Info => "INFO ".green().bold(),
+                log::Level::Debug => "DEBUG".blue().bold(),
+                log::Level::Trace => "TRACE".purple().bold(),
+            };
+
+            out.finish(format_args!(
+                "[{} {} {}] {}",
+                now.format(&time::format_description::well_known::Rfc3339)
+                    .unwrap(),
+                level,
+                record.file().unwrap_or(record.target()),
+                message
+            ))
+        });
+
     #[cfg(not(target_arch = "wasm32"))]
     {
-        let base_level = log::LevelFilter::Info;
-        let wgpu_level = log::LevelFilter::Error;
-
-        // parse_default_env will read the RUST_LOG environment variable and apply it on top
-        // of these default filters
-        env_logger::builder()
-            .filter_level(base_level)
-            .filter_module("wgpu_core", wgpu_level)
-            .filter_module("wgpu_hal", wgpu_level)
-            .filter_module("naga", wgpu_level)
-            .parse_default_env()
-            .init();
+        dispatch = dispatch.chain(std::io::stdout());
     }
+
+    #[cfg(target_arch = "wasm32")]
+    {
+        dispatch = dispatch.chain(fern::Output::call(console_log::log));
+        std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+    }
+
+    dispatch.apply().unwrap();
 }
 
 impl<'a, State: AppState> App<'a, State> {

@@ -15,18 +15,19 @@ name = "sursface"
 path = "src/lib.rs"
 
 [dependencies]
-console_error_panic_hook = "0.1.7"
-pollster = "0.4.0"
-wasm-bindgen = "0.2.100"
-web-sys = { version = "0.3.77", features = ["Window", "Performance"] }
 wgpu = { version = "25.0.0", features = ["webgl"] }
 winit = "0.30.9"
-fern = "0.7.1"
-wasm-bindgen-futures = "0.4.50"
-web-time = "1.1.0"
-console_log = "1.0.0"
-log = "0.4.27"
 image = "0.25.6"
-env_logger = "0.11.8"
+pollster = "0.4.0"
+wasm-bindgen = "0.2.100"
+wasm-bindgen-futures = "0.4.50"
+web-sys = { version = "0.3.77", features = ["Window", "Performance"] }
+time = { version = "0.3.41", features = ["formatting"] }
+web-time = "1.1.0"
+log = "0.4.27"
+fern = "0.7.1"
+colored = "3.0.0"
+console_log = "1.0.0"
+console_error_panic_hook = "0.1.7"
 bytemuck = "1.22.0"
 lazy_static = "1.5.0"

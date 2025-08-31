@@ -42,7 +42,7 @@ pub fn clear<'a>(
     encoder.begin_render_pass(&rpass_descriptor)
 }
 
-pub fn create_shader(device: &Device, shader_source: &'static str) -> ShaderModule {
+pub fn create_shader(device: &Device, shader_source: &str) -> ShaderModule {
     use std::borrow::Cow;
 
     device.create_shader_module(wgpu::ShaderModuleDescriptor {

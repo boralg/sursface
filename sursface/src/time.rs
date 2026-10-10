@@ -1,15 +1,33 @@
 use lazy_static::lazy_static;
+use web_time::{Duration, Instant};
 
 lazy_static! {
-    static ref START_TIME: web_time::Instant = web_time::Instant::now();
+    static ref START_TIME: Instant = Instant::now();
 }
 
-pub fn now_secs() -> f32 {
-    now_secs_f64() as f32
+pub struct Time {
+    last_timestamp: Instant,
+    pub dt: Duration,
 }
 
-pub fn now_secs_f64() -> f64 {
-    web_time::Instant::now()
-        .duration_since(*START_TIME)
-        .as_secs_f64()
+impl Default for Time {
+    fn default() -> Self {
+        Self {
+            last_timestamp: *START_TIME,
+            dt: Default::default(),
+        }
+    }
+}
+
+impl Time {
+    pub fn update(&mut self) {
+        let now = Instant::now();
+
+        self.dt = self.last_timestamp.elapsed();
+        self.last_timestamp = now;
+    }
+
+    pub fn since_start() -> Duration {
+        Instant::now().duration_since(*START_TIME)
+    }
 }

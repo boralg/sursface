@@ -7,7 +7,8 @@ use sursface::std::models::{quad_no_normal, quad_uvs, VertexPositionUv};
 use sursface::std::{
     clear, create_render_pipeline, create_shader, create_uniforms, get_framebuffer,
 };
-use sursface::time::now_secs;
+use sursface::time::Time;
+use sursface::web_time::Duration;
 use sursface::wgpu::util::DeviceExt;
 use sursface::wgpu::{
     BindGroup, Buffer, BufferAddress, BufferUsages, Color, CommandEncoderDescriptor,
@@ -34,9 +35,9 @@ pub fn start_browser(canvas: sursface::wgpu::web_sys::HtmlCanvasElement) {
 #[derive(Clone)]
 enum InteractionState {
     /// Not pressing or holding down.
-    Idle { pre_tapped_at: Option<f32> },
+    Idle { pre_tapped_at: Option<Duration> },
     /// Holding down but not dragging yet.
-    PanningIdle { pressed_down_at: f32 },
+    PanningIdle { pressed_down_at: Duration },
     /// Holding down and dragging.
     Panning,
     /// Holding down without dragging for a bit then possibly dragging.
@@ -49,10 +50,18 @@ impl FmtDisplay for InteractionState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             InteractionState::Idle { pre_tapped_at } => {
-                write!(f, "Idle {{ pre_tapped_at: {:?} }}", pre_tapped_at)
+                write!(
+                    f,
+                    "Idle {{ pre_tapped_at: {:?} }}",
+                    pre_tapped_at.map(|d| d.as_secs_f32())
+                )
             }
             InteractionState::PanningIdle { pressed_down_at } => {
-                write!(f, "PanningIdle {{ pressed_down_at: {} }}", pressed_down_at)
+                write!(
+                    f,
+                    "PanningIdle {{ pressed_down_at: {} }}",
+                    pressed_down_at.as_secs_f32()
+                )
             }
             InteractionState::Panning => write!(f, "Panning"),
             InteractionState::ZoomingIn => write!(f, "Zooming"),
@@ -70,7 +79,7 @@ struct MandelbrotState {
     scale_speed: f32,
     last_cursor_location: PhysicalPosition<f32>,
     cursor_location: PhysicalPosition<f32>,
-    last_timestep: f32,
+    time: Time,
     interaction_state: InteractionState,
 }
 
@@ -159,7 +168,7 @@ impl AppState for MandelbrotState {
             scale_speed: 0.5f32,
             last_cursor_location: PhysicalPosition::new(0.0, 0.0),
             cursor_location: PhysicalPosition::new(0.0, 0.0),
-            last_timestep: now_secs(),
+            time: Time::default(),
             interaction_state: InteractionState::Idle {
                 pre_tapped_at: None,
             },
@@ -167,14 +176,9 @@ impl AppState for MandelbrotState {
     }
 
     fn draw(&mut self, display: &mut Display) {
-        let dt = {
-            let mut dt = 0f32;
-            dt += now_secs() - self.last_timestep;
+        self.time.update();
+        let dt = self.time.dt.as_secs_f32();
 
-            dt
-        };
-
-        self.last_timestep = now_secs();
         self.uniforms.aspect_ratio = display.config.width as f32 / display.config.height as f32;
 
         let clear_color = Color {
@@ -186,8 +190,12 @@ impl AppState for MandelbrotState {
 
         self.interaction_state = match self.interaction_state.clone() {
             state @ InteractionState::PanningIdle { pressed_down_at } => {
-                if now_secs() - pressed_down_at > 1f32 {
-                    log::info!("Started zooming in at {}", now_secs());
+                // TODO: this time comparison is a disgusting pattern
+                if Time::since_start() - pressed_down_at > Duration::from_secs_f32(1.0) {
+                    log::info!(
+                        "Started zooming in at {}",
+                        Time::since_start().as_secs_f32()
+                    );
                     InteractionState::ZoomingIn
                 } else {
                     state
@@ -326,17 +334,17 @@ impl MandelbrotState {
             InteractionState::Idle {
                 pre_tapped_at: Some(pre_tapped_at),
             } => {
-                if now_secs() - pre_tapped_at < 1f32 {
-                    log::info!("Started zooming out at {}", now_secs());
+                if Time::since_start() - pre_tapped_at < Duration::from_secs_f32(1f32) {
+                    log::info!("Started zooming out at {}", Time::since_start().as_secs_f32());
                     InteractionState::ZoomingOut
                 } else {
                     InteractionState::PanningIdle {
-                        pressed_down_at: now_secs(),
+                        pressed_down_at: Time::since_start(),
                     }
                 }
             }
             InteractionState::Idle { .. } => InteractionState::PanningIdle {
-                pressed_down_at: now_secs(),
+                pressed_down_at: Time::since_start(),
             },
             state => state,
         }
@@ -345,8 +353,8 @@ impl MandelbrotState {
     fn handle_cursor_up(&mut self) -> InteractionState {
         match self.interaction_state.clone() {
             InteractionState::PanningIdle { pressed_down_at } => {
-                let elapsed = now_secs() - pressed_down_at;
-                let pre_tapped_at = if elapsed < 0.3f32 {
+                let elapsed = Time::since_start() - pressed_down_at;
+                let pre_tapped_at = if elapsed < Duration::from_secs_f32(0.3f32) {
                     Some(pressed_down_at)
                 } else {
                     None

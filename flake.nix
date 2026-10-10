@@ -2,7 +2,7 @@
   description = "Sursface, a cross-platform rendering library";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
 
     tomers = {
       url = "github:boralg/tomers";
@@ -11,7 +11,11 @@
   };
 
   outputs =
-    { nixpkgs, tomers, ... }:
+    {
+      nixpkgs,
+      tomers,
+      ...
+    }:
     tomers.inputs.flake-utils.lib.eachDefaultSystem (
       system:
       let
@@ -25,8 +29,22 @@
                 stable.rustc
                 stable.cargo
                 crossFenixPkgs.stable.rust-src
-                crossFenixPkgs.stable.rust-std
+                stable.rust-std
               ];
+
+            wasm-bindgen-cli = pkgs.wasm-bindgen-cli.overrideAttrs (old: rec {
+              version = "0.2.114";
+              src = pkgs.fetchCrate {
+                pname = "wasm-bindgen-cli";
+                inherit version;
+                hash = "sha256-xrCym+rFY6EUQFWyWl6OPA+LtftpUAE5pIaElAIVqW0=";
+              };
+              cargoDeps = pkgs.rustPlatform.fetchCargoVendor {
+                inherit src;
+                name = "wasm-bindgen-cli-${version}-vendor";
+                hash = "sha256-Z8+dUXPQq7S+Q7DWNr2Y9d8GMuEdSnq00quUR0wDNPM=";
+              };
+            });
           in
           [
             {
@@ -48,16 +66,18 @@
                 LD_LIBRARY_PATH =
                   with pkgs;
                   lib.makeLibraryPath [
+                    vulkan-loader
+                    libGL
+
                     libxkbcommon
                     wayland
-                    xorg.libX11
-                    xorg.libXrandr
-                    xorg.libXrender
-                    xorg.libXcursor
-                    xorg.libxcb
-                    xorg.libXi
-                    libGL
-                    vulkan-loader
+                    libx11
+                    libxrandr
+                    libxrender
+                    libxcursor
+                    libxcb
+                    libxi
+                    libxrandr
                   ];
               };
             }
@@ -66,6 +86,8 @@
               arch = "x86_64-windows";
               depsBuild = with pkgs.pkgsCross; [
                 mingwW64.stdenv.cc
+              ];
+              targetLibs = with pkgs.pkgsCross; [
                 mingwW64.windows.pthreads
               ];
               inherit buildFilePatterns;
@@ -86,9 +108,11 @@
               depsBuild = with pkgs; [ wasm-bindgen-cli ];
               postInstall = crateName: ''
                 mkdir $out/bindgen
-                find $out/bin -type f -name "*.wasm" -exec wasm-bindgen {} --out-dir $out/bindgen --web \;
-                find $out/lib -type f -name "*.wasm" -exec wasm-bindgen {} --out-dir $out/bindgen --web \;
+                for wasm in $out/lib/*.wasm; do
+                  wasm-bindgen "$wasm" --out-dir $out/bindgen --web
+                done
               '';
+
               inherit buildFilePatterns;
               inherit toolchainPackages;
               env = {

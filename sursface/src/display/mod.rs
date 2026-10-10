@@ -15,18 +15,52 @@ pub struct Display<'a> {
     pub config: wgpu::SurfaceConfiguration,
 }
 
+fn instance() -> wgpu::Instance {
+    wgpu::Instance::new(
+        &wgpu::InstanceDescriptor {
+            backends: if cfg!(target_arch = "wasm32") {
+                wgpu::Backends::GL
+            } else {
+                wgpu::Backends::PRIMARY
+            },
+            ..Default::default()
+        }
+        .with_env(),
+    )
+}
+
+async fn request_adapter_and_device(
+    instance: &wgpu::Instance,
+    surface: &wgpu::Surface<'_>,
+) -> (wgpu::Adapter, wgpu::Device, wgpu::Queue) {
+    let adapter = instance
+        .request_adapter(&wgpu::RequestAdapterOptions {
+            power_preference: wgpu::PowerPreference::default(),
+            compatible_surface: Some(&surface),
+            force_fallback_adapter: false,
+        })
+        .await
+        .expect("Couldn't get adapter");
+
+    let (device, queue) = adapter
+        .request_device(&wgpu::DeviceDescriptor {
+            label: None,
+            required_features: wgpu::Features::empty(),
+            required_limits: if cfg!(target_arch = "wasm32") {
+                wgpu::Limits::downlevel_webgl2_defaults()
+            } else {
+                wgpu::Limits::default()
+            },
+            memory_hints: wgpu::MemoryHints::Performance,
+            trace: wgpu::Trace::Off,
+        })
+        .await
+        .unwrap();
+
+    (adapter, device, queue)
+}
+
 impl<'a> Display<'a> {
-    pub(crate) fn create_window_from_size(
-        event_loop: &ActiveEventLoop,
-        window_size: PhysicalSize<u32>,
-    ) -> Window {
-        let window = event_loop
-            .create_window(WindowAttributes::default().with_inner_size(window_size))
-            .expect("Couldn't create window");
-
-        window
-    }
-
     #[cfg(target_arch = "wasm32")]
     pub(crate) fn create_window_from_canvas(
         event_loop: &ActiveEventLoop,
@@ -39,47 +73,17 @@ impl<'a> Display<'a> {
         window
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn from_window(window: Window) -> Self {
-        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
-            #[cfg(not(target_arch = "wasm32"))]
-            backends: wgpu::Backends::PRIMARY,
-            #[cfg(target_arch = "wasm32")]
-            backends: wgpu::Backends::GL,
-            ..Default::default()
-        });
+        let instance = instance();
 
         let window = Arc::new(window);
         let surface = instance
             .create_surface(Arc::clone(&window))
             .expect("Couldn't create surface");
 
-        let (adapter, device, queue) = pollster::block_on(async {
-            let adapter = instance
-                .request_adapter(&wgpu::RequestAdapterOptions {
-                    power_preference: wgpu::PowerPreference::default(),
-                    compatible_surface: Some(&surface),
-                    force_fallback_adapter: false,
-                })
-                .await
-                .expect("Couldn't get adapter");
-
-            let (device, queue) = adapter
-                .request_device(&wgpu::DeviceDescriptor {
-                    label: None,
-                    required_features: wgpu::Features::empty(),
-                    required_limits: if cfg!(target_arch = "wasm32") {
-                        wgpu::Limits::downlevel_webgl2_defaults()
-                    } else {
-                        wgpu::Limits::default()
-                    },
-                    memory_hints: wgpu::MemoryHints::Performance,
-                    trace: wgpu::Trace::Off,
-                })
-                .await
-                .unwrap();
-
-            (adapter, device, queue)
-        });
+        let (adapter, device, queue) =
+            pollster::block_on(request_adapter_and_device(&instance, &surface));
 
         let size = window.inner_size();
 
@@ -108,6 +112,16 @@ impl<'a> Display<'a> {
             queue,
             config,
         }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn window_from_size(
+        event_loop: &ActiveEventLoop,
+        window_size: PhysicalSize<u32>,
+    ) -> Window {
+        event_loop
+            .create_window(WindowAttributes::default().with_inner_size(window_size))
+            .expect("Couldn't create window")
     }
 
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {

@@ -59,7 +59,7 @@ impl<'a, State: AppState> ApplicationHandler for App<'a, State> {
         #[cfg(not(target_arch = "wasm32"))]
         {
             self.display = Some(Arc::new(Mutex::new(State::create_display(
-                Display::create_window_from_size(event_loop, self.initial_size),
+                Display::window_from_size(event_loop, self.initial_size),
             ))));
         }
         #[cfg(target_arch = "wasm32")]

@@ -5,9 +5,6 @@ use winit::event::{DeviceEvent, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
 use winit::window::{Window, WindowId};
 
-#[cfg(target_arch = "wasm32")]
-extern crate console_error_panic_hook;
-
 use super::display::Display;
 
 pub(crate) struct App<'a, State: AppState> {
@@ -35,58 +32,6 @@ pub trait AppState {
     }
 }
 
-fn init_logger() {
-    use colored::Colorize;
-
-    let base_level = log::LevelFilter::Info;
-    let wgpu_level = log::LevelFilter::Error;
-
-    let mut dispatch = fern::Dispatch::new()
-        .level(base_level)
-        .level_for("wgpu_core", wgpu_level)
-        .level_for("wgpu_hal", wgpu_level)
-        .level_for("naga", wgpu_level)
-        .format(|out, message, record| {
-            let now= time::OffsetDateTime::from_unix_timestamp(
-                web_time::SystemTime::now()
-                    .duration_since(web_time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs() as i64,
-            )
-            .unwrap();
-
-            let level = match record.level() {
-                log::Level::Error => "ERROR".red().bold(),
-                log::Level::Warn => "WARN ".yellow().bold(),
-                log::Level::Info => "INFO ".green().bold(),
-                log::Level::Debug => "DEBUG".blue().bold(),
-                log::Level::Trace => "TRACE".purple().bold(),
-            };
-
-            out.finish(format_args!(
-                "[{} {} {}] {}",
-                now.format(&time::format_description::well_known::Rfc3339)
-                    .unwrap(),
-                level,
-                record.file().unwrap_or(record.target()),
-                message
-            ))
-        });
-
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        dispatch = dispatch.chain(std::io::stdout());
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    {
-        dispatch = dispatch.chain(fern::Output::call(console_log::log));
-        std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-    }
-
-    dispatch.apply().unwrap();
-}
-
 impl<'a, State: AppState> App<'a, State> {
     #[cfg(not(target_arch = "wasm32"))]
     pub fn from_window_size(width: u32, height: u32) -> Self {
@@ -111,8 +56,6 @@ impl<'a, State: AppState> App<'a, State> {
 
 impl<'a, State: AppState> ApplicationHandler for App<'a, State> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        init_logger();
-
         #[cfg(not(target_arch = "wasm32"))]
         {
             self.display = Some(Arc::new(Mutex::new(State::create_display(

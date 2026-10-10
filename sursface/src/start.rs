@@ -9,9 +9,9 @@ use crate::app::{App, AppState};
 extern crate console_error_panic_hook;
 
 #[cfg(not(target_arch = "wasm32"))]
-pub fn create_window_desktop<State: AppState + 'static>(
-    width: u32, height: u32,
-) {
+pub fn create_window_desktop<State: AppState + 'static>(width: u32, height: u32) {
+    super::logger::init_logger();
+
     let event_loop = EventLoop::new().unwrap();
     event_loop.set_control_flow(ControlFlow::Poll);
 
@@ -21,6 +21,9 @@ pub fn create_window_desktop<State: AppState + 'static>(
 
 #[cfg(target_arch = "wasm32")]
 pub fn create_window_browser<State: AppState + 'static>(canvas: HtmlCanvasElement) {
+    super::logger::init_logger();
+    console_error_panic_hook::set_once();
+
     let event_loop = EventLoop::new().unwrap();
     event_loop.set_control_flow(ControlFlow::Poll);
 

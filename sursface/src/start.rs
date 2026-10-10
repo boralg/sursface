@@ -30,3 +30,5 @@ pub fn create_window_browser<State: AppState + 'static>(canvas: HtmlCanvasElemen
     let mut app = App::<State>::from_canvas(canvas);
     event_loop.run_app(&mut app).unwrap();
 }
+
+// TODO: android

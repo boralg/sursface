@@ -308,9 +308,9 @@ impl MandelbrotState {
             | InteractionState::ZoomingOut
             | InteractionState::Panning => {
                 let dx = (self.cursor_location.x - self.last_cursor_location.x)
-                    / display.size.width as f32;
+                    / display.size().width as f32;
                 let dy = (self.cursor_location.y - self.last_cursor_location.y)
-                    / display.size.height as f32;
+                    / display.size().height as f32;
 
                 self.uniforms.translation[0] -= dx * self.uniforms.scale;
                 self.uniforms.translation[1] += dy * self.uniforms.scale;

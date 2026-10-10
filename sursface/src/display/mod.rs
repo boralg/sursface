@@ -9,7 +9,6 @@ use winit::platform::web::WindowAttributesExtWebSys;
 
 pub struct Display<'a> {
     pub window: Arc<Window>,
-    pub size: winit::dpi::PhysicalSize<u32>,
     pub surface: wgpu::Surface<'a>,
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
@@ -104,7 +103,6 @@ impl<'a> Display<'a> {
 
         Self {
             window,
-            size,
             surface,
             device,
             queue,
@@ -114,11 +112,14 @@ impl<'a> Display<'a> {
 
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
         if new_size.width > 0 && new_size.height > 0 {
-            self.size = new_size;
             self.config.width = new_size.width;
             self.config.height = new_size.height;
             self.surface.configure(&self.device, &self.config);
         }
+    }
+
+    pub fn size(&self) -> PhysicalSize<u32> {
+        PhysicalSize::new(self.config.width, self.config.height)
     }
 
     pub fn window(&self) -> &Window {

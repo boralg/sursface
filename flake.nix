@@ -32,17 +32,18 @@
                 stable.rust-std
               ];
 
+            # TODO: version chasing is mad annoying
             wasm-bindgen-cli = pkgs.wasm-bindgen-cli.overrideAttrs (old: rec {
-              version = "0.2.114";
+              version = "0.2.129";
               src = pkgs.fetchCrate {
                 pname = "wasm-bindgen-cli";
                 inherit version;
-                hash = "sha256-xrCym+rFY6EUQFWyWl6OPA+LtftpUAE5pIaElAIVqW0=";
+                hash = "sha256-pcecKQd7E8Opw6bkFoE569epUi7gh5qpQF1e5PJY6V8=";
               };
               cargoDeps = pkgs.rustPlatform.fetchCargoVendor {
                 inherit src;
                 name = "wasm-bindgen-cli-${version}-vendor";
-                hash = "sha256-Z8+dUXPQq7S+Q7DWNr2Y9d8GMuEdSnq00quUR0wDNPM=";
+                hash = "sha256-vmUrWVU7kPJJxO5qIVeAkwQyWDELO1Z4Z5gitz2kco8=";
               };
             });
           in

@@ -27,6 +27,15 @@ pub(crate) struct DisplayWasmPending<'a> {
     queue: wgpu::Queue,
 }
 
+pub struct DisplaySuspended {
+    window: Arc<Window>,
+    instance: wgpu::Instance,
+    adapter: wgpu::Adapter,
+    device: wgpu::Device,
+    queue: wgpu::Queue,
+    config: wgpu::SurfaceConfiguration,
+}
+
 fn instance() -> wgpu::Instance {
     wgpu::Instance::new(
         &wgpu::InstanceDescriptor {
@@ -218,5 +227,53 @@ impl<'a> Display<'a> {
 
     pub fn window(&self) -> &Window {
         &self.window
+    }
+
+    pub fn suspend(self) -> DisplaySuspended {
+        let Self {
+            window,
+            instance,
+            adapter,
+            device,
+            queue,
+            config,
+            ..
+        } = self;
+        DisplaySuspended {
+            window,
+            instance,
+            adapter,
+            device,
+            queue,
+            config,
+        }
+    }
+}
+
+impl DisplaySuspended {
+    pub fn resume(self) -> Display<'static> {
+        let Self {
+            window,
+            instance,
+            adapter,
+            device,
+            queue,
+            config,
+        } = self;
+
+        let surface = instance
+            .create_surface(Arc::clone(&window))
+            .expect("Couldn't recreate surface");
+        surface.configure(&device, &config);
+
+        Display {
+            window,
+            instance,
+            surface,
+            adapter,
+            device,
+            queue,
+            config,
+        }
     }
 }

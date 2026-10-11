@@ -8,6 +8,9 @@ use crate::app::{App, AppState};
 #[cfg(target_arch = "wasm32")]
 extern crate console_error_panic_hook;
 
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen_futures::spawn_local;
+
 #[cfg(not(target_arch = "wasm32"))]
 pub fn create_window_desktop<State: AppState + 'static>(
     width: u32,

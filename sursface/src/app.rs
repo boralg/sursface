@@ -1,14 +1,14 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use winit::application::ApplicationHandler;
 #[cfg(not(target_arch = "wasm32"))]
 use winit::dpi::PhysicalSize;
 use winit::event::{DeviceEvent, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
-use winit::window::{Window, WindowId};
+use winit::window::WindowId;
 
-use super::display::Display;
 #[cfg(target_arch = "wasm32")]
 use super::display::DisplayWasmPending;
+use super::display::{Display, DisplaySuspended};
 
 pub trait AppState: Sized {
     type InitState;
@@ -43,6 +43,10 @@ enum AppPhase<'a, State: AppState> {
     },
     Running {
         display: Display<'a>,
+        state: State,
+    },
+    Suspended {
+        display: DisplaySuspended,
         state: State,
     },
 }
@@ -81,7 +85,6 @@ impl<'a, State: AppState> App<'a, State> {
     }
 }
 
-
 impl<'a, State: AppState> ApplicationHandler for App<'a, State> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let phase = self.phase.take().expect("App phase missing");
@@ -113,10 +116,30 @@ impl<'a, State: AppState> ApplicationHandler for App<'a, State> {
             }
 
             running @ AppPhase::Running { .. } => running,
+
+            AppPhase::Suspended { display, state } => {
+                log::debug!("Resuming");
+                let display = display.resume();
+                AppPhase::Running { display, state }
+            }
+        });
+    }
+
+    fn suspended(&mut self, _event_loop: &ActiveEventLoop) {
+        let phase = self.phase.take().expect("App phase missing");
+
+        self.phase = Some(match phase {
+            AppPhase::Running { display, state } => {
+                log::debug!("Suspending");
+                let display = display.suspend();
+                AppPhase::Suspended { display, state }
+            }
+            other => other, // TODO: passthrough on all other states or just Suspended?
         });
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
+        // TODO: returning on suspended may leave released keys stuck
         let Some(AppPhase::Running { display, state }) = &mut self.phase else {
             return;
         };

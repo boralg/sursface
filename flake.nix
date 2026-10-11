@@ -109,7 +109,7 @@
               depsBuild = with pkgs; [ wasm-bindgen-cli ];
               postInstall = crateName: ''
                 mkdir $out/bindgen
-                for wasm in $out/lib/*.wasm; do
+                for wasm in $out/lib/*.wasm $out/bin/*.wasm; do
                   wasm-bindgen "$wasm" --out-dir $out/bindgen --web
                 done
               '';

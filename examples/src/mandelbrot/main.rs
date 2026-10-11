@@ -22,14 +22,14 @@ use sursface::{log, wgpu};
 fn main() {
     #[cfg(not(target_arch = "wasm32"))]
     {
-        sursface::start::create_window_desktop::<MandelbrotState>(720, 720);
+        sursface::start::create_window_desktop::<App>(720, 720, ());
     }
 }
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn start_browser(canvas: sursface::wgpu::web_sys::HtmlCanvasElement) {
-    sursface::start::create_window_browser::<MandelbrotState>(canvas);
+    sursface::start::create_window_browser::<App>(canvas, ());
 }
 
 #[derive(Clone)]
@@ -70,7 +70,7 @@ impl FmtDisplay for InteractionState {
     }
 }
 
-struct MandelbrotState {
+struct App {
     render_pipeline: RenderPipeline,
     vertex_buffer: Buffer,
     uniform_buffer: Buffer,
@@ -93,8 +93,10 @@ pub struct Uniforms {
     _padding: [f32; 2],    // 8 bytes to make the struct size 32 bytes
 }
 
-impl AppState for MandelbrotState {
-    fn new(display: &mut Display) -> Self {
+impl AppState for App {
+    type InitState = ();
+
+    fn new(display: &mut Display, _init: ()) -> Self {
         let device = &display.device;
         let aspect_ratio = display.config.width as f32 / display.config.height as f32;
 
@@ -291,7 +293,7 @@ impl AppState for MandelbrotState {
     }
 }
 
-impl MandelbrotState {
+impl App {
     fn handle_cursor_move(&mut self, display: &mut Display, position: PhysicalPosition<f64>) {
         self.cursor_location = PhysicalPosition {
             x: position.x as f32,

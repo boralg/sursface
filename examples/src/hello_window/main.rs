@@ -5,21 +5,23 @@ use sursface::wgpu::{self, TextureView};
 fn main() {
     #[cfg(not(target_arch = "wasm32"))]
     {
-        sursface::start::create_window_desktop::<EmptyState>(1280, 720);
+        sursface::start::create_window_desktop::<App>(1280, 720, ());
     }
 }
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn start_browser(canvas: sursface::wgpu::web_sys::HtmlCanvasElement) {
-    sursface::start::create_window_browser::<EmptyState>(canvas);
+    sursface::start::create_window_browser::<App>(canvas, ());
 }
 
 #[derive(Clone)]
-struct EmptyState {}
+struct App {}
 
-impl AppState for EmptyState {
-    fn new<'a>(_display: &mut Display) -> Self {
+impl AppState for App {
+    type InitState = ();
+
+    fn new(display: &mut Display, _init: ()) -> Self {
         Self {}
     }
 
@@ -47,9 +49,7 @@ impl AppState for EmptyState {
 fn clear<'a>(display: &mut Display, view: &TextureView, color: sursface::wgpu::Color) {
     let mut encoder = display
         .device
-        .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: None,
-        });
+        .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
     {
         let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {

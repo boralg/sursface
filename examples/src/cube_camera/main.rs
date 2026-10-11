@@ -18,17 +18,17 @@ use sursface::winit::event::{Touch, WindowEvent};
 fn main() {
     #[cfg(not(target_arch = "wasm32"))]
     {
-        sursface::start::create_window_desktop::<CubeState>(1280, 720);
+        sursface::start::create_window_desktop::<App>(1280, 720, ());
     }
 }
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn start_browser(canvas: sursface::wgpu::web_sys::HtmlCanvasElement) {
-    sursface::start::create_window_browser::<CubeState>(canvas);
+    sursface::start::create_window_browser::<App>(canvas, ());
 }
 
-struct CubeState {
+struct App {
     render_pipeline: RenderPipeline,
     uniform_buffer: Buffer,
     uniform_bind_group: BindGroup,
@@ -47,8 +47,10 @@ pub struct Uniforms {
     camera_pan: [[f32; 4]; 4],
 }
 
-impl AppState for CubeState {
-    fn new(display: &mut Display) -> Self {
+impl AppState for App {
+    type InitState = ();
+
+    fn new(display: &mut Display, _init: ()) -> Self {
         let device = &display.device;
 
         let shader = create_shader(device, include_str!("assets/shader.wgsl"));

@@ -6,22 +6,24 @@ use sursface::wgpu::{self, Color, RenderPipeline};
 fn main() {
     #[cfg(not(target_arch = "wasm32"))]
     {
-        sursface::start::create_window_desktop::<TriangleState>(1280, 720);
+        sursface::start::create_window_desktop::<App>(1280, 720, ());
     }
 }
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen::prelude::wasm_bindgen]
 pub fn start_browser(canvas: sursface::wgpu::web_sys::HtmlCanvasElement) {
-    sursface::start::create_window_browser::<TriangleState>(canvas);
+    sursface::start::create_window_browser::<App>(canvas, ());
 }
 
-struct TriangleState {
+struct App {
     render_pipeline: RenderPipeline,
 }
 
-impl AppState for TriangleState {
-    fn new(display: &mut Display) -> Self {
+impl AppState for App {
+    type InitState = ();
+
+    fn new(display: &mut Display, _init: ()) -> Self {
         let device = &display.device;
 
         let shader = create_shader(device, include_str!("assets/shader.wgsl"));
